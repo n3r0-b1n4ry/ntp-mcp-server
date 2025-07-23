@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  ntp-mcp-server:
+    build: .
+    container_name: ntp-mcp-server
+    environment:
+      - NTP_SERVER=pool.ntp.org
+      - TZ=UTC
+    # MCP servers typically run as stdio servers, so we keep them running
+    stdin_open: true
+    tty: true
+    restart: unless-stopped 

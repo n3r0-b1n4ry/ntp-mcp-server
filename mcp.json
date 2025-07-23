@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "ntp-server": {
+      "command": "python",
+      "args": ["app.py"],
+      "cwd": ".",
+      "env": {
+        "NTP_SERVER": "pool.ntp.org",
+        "TZ": "UTC"
+      }
+    }
+  }
+} 

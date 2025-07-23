@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ntp-server-docker": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "-e", "NTP_SERVER", "-e", "TZ", "ntp-mcp-server"],
+      "env": {
+        "NTP_SERVER": "pool.ntp.org",
+        "TZ": "UTC"
+      }
+    }
+  }
+} 
