@@ -5,6 +5,10 @@ A Model Context Protocol (MCP) server that provides accurate time information fr
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green?logo=anthropic)](https://modelcontextprotocol.io/)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org/)
+#### Add NTP MCP Server to LM Studio
+[![Add NTP MCP Server to LM Studio](https://files.lmstudio.ai/deeplink/mcp-install-dark.svg)](https://lmstudio.ai/install-mcp?name=ntp-server&config=eyJjb21tYW5kIjoicHl0aG9uIiwiYXJncyI6WyJhcHAucHkiXSwiY3dkIjoiLiIsImVudiI6eyJOVFBfU0VSVkVSIjoicG9vbC5udHAub3JnIiwiVFoiOiJVVEMifX0=)
+#### Add NTP MCP Server Docker to LM Studio
+[![Add NTP MCP Server Docker to LM Studio](https://files.lmstudio.ai/deeplink/mcp-install-dark.svg)](https://lmstudio.ai/install-mcp?name=ntp-server-docker&config=eyJjb21tYW5kIjoiZG9ja2VyIiwiYXJncyI6WyJydW4iLCItLXJtIiwiLWkiLCItZSIsIk5UUF9TRVJWRVIiLCItZSIsIlRaIiwibnRwLW1jcC1zZXJ2ZXIiXSwiZW52Ijp7Ik5UUF9TRVJWRVIiOiJwb29sLm50cC5vcmciLCJUWiI6IlVUQyJ9fQ==)
 
 ## ✨ Features
 
