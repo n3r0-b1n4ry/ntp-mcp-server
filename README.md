@@ -2,7 +2,7 @@
 
 A Model Context Protocol (MCP) server that provides accurate time information from Network Time Protocol (NTP) servers with timezone support.
 
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://hub.docker.com/r/n3r0b1n4ry/ntp-mcp-server)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green?logo=anthropic)](https://modelcontextprotocol.io/)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org/)
 #### Add NTP MCP Server to LM Studio
@@ -230,16 +230,20 @@ No persistent volumes required - this is a stateless service.
 ntp-mcp-server/
 ├── app.py                 # Main MCP server implementation
 ├── requirements.txt       # Python dependencies
-├── Dockerfile            # Docker build configuration
-├── docker-compose.yml    # Docker Compose setup
-├── .dockerignore         # Docker build optimization
-├── mcp.json              # MCP client config (Python)
-├── mcp-docker.json       # MCP client config (Docker)
-├── test_mcp.py           # Basic functionality tests
-├── test_mcp_proper.py    # Advanced MCP protocol tests
-├── test_mcp_docker.py    # Docker-specific tests
-├── test_direct_docker.py # Direct container tests
-└── README.md             # This file
+├── Dockerfile             # Docker build configuration
+├── docker-compose.yml     # Docker Compose setup
+├── .dockerignore          # Docker build optimization
+├── .gitignore             # Git ignore configuration
+├── LICENSE                # License information
+├── config/
+│   ├── mcp.json           # MCP client config (Python)
+│   └── mcp-docker.json    # MCP client config (Docker)
+├── test/
+│   ├── test_mcp.py        # Basic functionality tests
+│   ├── test_mcp_proper.py # Advanced MCP protocol tests
+│   ├── test_mcp_docker.py # Docker-specific tests
+│   └── test_direct_docker.py # Direct container tests
+└── README.md              # This file
 ```
 
 ## 🔍 Troubleshooting
