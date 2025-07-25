@@ -1,6 +1,6 @@
 # NTP MCP Server 🕒
 
-A Model Context Protocol (MCP) server that provides accurate time information from Network Time Protocol (NTP) servers with timezone support.
+A Model Context Protocol (MCP) server that provides accurate time information from Network Time Protocol (NTP) servers with timezone support and structured output formatting.
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://hub.docker.com/r/n3r0b1n4ry/ntp-mcp-server)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green?logo=anthropic)](https://modelcontextprotocol.io/)
@@ -14,11 +14,47 @@ A Model Context Protocol (MCP) server that provides accurate time information fr
 
 - 🌍 **Multiple NTP Server Support**: Connect to any NTP server worldwide
 - 🕰️ **Timezone Conversion**: Automatic timezone conversion with pytz
+- 📋 **Structured Output Format**: Clean, parseable time format with separate date, time, and timezone components
 - 🔄 **Fallback Mechanism**: Falls back to local time if NTP is unavailable
 - 🐳 **Docker Ready**: Fully containerized for easy deployment
 - ⚡ **Retry Logic**: Automatic retry with exponential backoff
 - 🔧 **Configurable**: Environment variable configuration
 - 📋 **MCP Compatible**: Works with Claude Desktop and other MCP clients
+- 🧪 **Comprehensive Testing**: Full test suite with format validation
+
+## 🕐 Time Output Format
+
+The NTP server now outputs time in a **structured, easy-to-parse format**:
+
+```
+Date:YYYY-MM-DD
+Time:HH:mm:ss
+Timezone:timezone_name
+```
+
+### Example Outputs
+
+**Successful NTP Response:**
+```
+Date:2025-07-25
+Time:14:30:25
+Timezone:UTC
+```
+
+**Fallback Response (when NTP unavailable):**
+```
+Date:2025-07-25
+Time:14:30:25
+Timezone:UTC (local fallback)
+```
+
+### Benefits of the New Format
+
+- ✅ **More structured and easier to parse**
+- ✅ **Separate date and time components**
+- ✅ **Clear timezone information**
+- ✅ **Consistent formatting across all responses**
+- ✅ **Machine-readable and human-friendly**
 
 ## 🚀 Quick Start
 
@@ -165,39 +201,67 @@ Add to your Claude Desktop configuration:
 
 ### `get_current_time`
 
-Retrieves the current time from the configured NTP server.
+Retrieves the current time from the configured NTP server in structured format.
 
 **Parameters**: None
 
-**Returns**: Current time in ISO format with timezone information
+**Returns**: Current time in structured format with separate date, time, and timezone components
 
 **Example Response**:
 ```
-Current time: 2025-07-22T10:35:25.591695+00:00
+Date:2025-07-25
+Time:14:30:25
+Timezone:UTC
 ```
 
 **Fallback Behavior**:
 - If NTP server is unreachable, falls back to local system time
+- Fallback responses include "(local fallback)" indicator
 - Returns error message if all time sources fail
 
 ## 🧪 Testing
 
+The project includes a comprehensive test suite with format validation:
+
+### Available Test Scripts
+
+1. **`test/simple_test.py`** - Windows-compatible direct testing
+2. **`test/test_mcp.py`** - Basic MCP protocol testing with format validation
+3. **`test/test_mcp_proper.py`** - Advanced MCP protocol testing
+4. **`test/test_mcp_docker.py`** - Comprehensive Docker testing
+5. **`test/test_direct_docker.py`** - Direct Docker container testing
+6. **`test/run_all_tests.py`** - Comprehensive test runner
+
 ### Run All Tests
 
 ```bash
-# Test Docker functionality
-python test_mcp_docker.py
+# Run comprehensive test suite
+python test/run_all_tests.py
 
-# Test MCP protocol
-python test_mcp_proper.py
-
-# Test basic functionality
-python test_mcp.py
+# Run individual tests
+python test/simple_test.py           # Simple direct testing
+python test/test_mcp_docker.py       # Docker functionality
+python test/test_mcp_proper.py       # MCP protocol testing
+python test/test_mcp.py              # Basic functionality
 ```
+
+### Test Coverage
+
+The test suite validates:
+- ✅ **Time format structure** (Date:YYYY-MM-DD, Time:HH:mm:ss, Timezone:name)
+- ✅ **Multiple NTP servers** (pool.ntp.org, time.google.com, time.cloudflare.com)
+- ✅ **Different timezones** (UTC, America/New_York, Europe/London, Asia/Tokyo)
+- ✅ **Docker containerization** with full MCP protocol
+- ✅ **Environment variable configuration**
+- ✅ **Fallback behavior** when NTP is unavailable
+- ✅ **MCP protocol compliance** (initialization, tools list, tool calls)
 
 ### Manual Testing
 
 ```bash
+# Test direct function call
+python -c "import app, asyncio; result = asyncio.run(app.handle_call_tool('get_current_time', {})); print(result[0].text)"
+
 # Start a container for testing
 docker run --rm -i -e NTP_SERVER=time.google.com -e TZ=America/New_York ntp-mcp-server
 
@@ -228,22 +292,24 @@ No persistent volumes required - this is a stateless service.
 
 ```
 ntp-mcp-server/
-├── app.py                 # Main MCP server implementation
-├── requirements.txt       # Python dependencies
-├── Dockerfile             # Docker build configuration
-├── docker-compose.yml     # Docker Compose setup
-├── .dockerignore          # Docker build optimization
-├── .gitignore             # Git ignore configuration
-├── LICENSE                # License information
+├── app.py                      # Main MCP server implementation
+├── requirements.txt            # Python dependencies
+├── Dockerfile                  # Docker build configuration
+├── docker-compose.yml          # Docker Compose setup
+├── .dockerignore               # Docker build optimization
+├── .gitignore                  # Git ignore configuration
+├── LICENSE                     # License information
 ├── config/
-│   ├── mcp.json           # MCP client config (Python)
-│   └── mcp-docker.json    # MCP client config (Docker)
+│   ├── mcp.json                # MCP client config (Python)
+│   └── mcp-docker.json         # MCP client config (Docker)
 ├── test/
-│   ├── test_mcp.py        # Basic functionality tests
-│   ├── test_mcp_proper.py # Advanced MCP protocol tests
-│   ├── test_mcp_docker.py # Docker-specific tests
-│   └── test_direct_docker.py # Direct container tests
-└── README.md              # This file
+│   ├── simple_test.py          # Windows-compatible direct testing
+│   ├── test_mcp.py             # Basic functionality tests with format validation
+│   ├── test_mcp_proper.py      # Advanced MCP protocol tests
+│   ├── test_mcp_docker.py      # Comprehensive Docker tests
+│   ├── test_direct_docker.py   # Direct container tests
+│   └── run_all_tests.py        # Comprehensive test runner
+└── README.md                   # This file
 ```
 
 ## 🔍 Troubleshooting
@@ -271,6 +337,20 @@ The server will automatically fall back to local time if the NTP server is unrea
 
 Ensure you're using a valid timezone identifier from the [pytz documentation](https://pythonhosted.org/pytz/).
 
+#### Time Format Issues
+
+The new structured format should always return:
+```
+Date:YYYY-MM-DD
+Time:HH:mm:ss
+Timezone:timezone_name
+```
+
+If you see different formatting, run the test suite to validate:
+```bash
+python test/simple_test.py
+```
+
 ### Debug Commands
 
 ```bash
@@ -280,11 +360,17 @@ docker ps --filter ancestor=ntp-mcp-server
 # View container logs
 docker logs <container-id>
 
-# Test container responsiveness
-python test_direct_docker.py
+# Test container responsiveness with new format
+python test/test_direct_docker.py
+
+# Run comprehensive test suite
+python test/run_all_tests.py
 
 # Check NTP connectivity
 docker run --rm ntp-mcp-server python -c "import ntplib; print(ntplib.NTPClient().request('pool.ntp.org'))"
+
+# Validate time format directly
+python -c "import app, asyncio; result = asyncio.run(app.handle_call_tool('get_current_time', {})); print('Format:', repr(result[0].text))"
 ```
 
 ## 🤝 Contributing
@@ -293,10 +379,11 @@ docker run --rm ntp-mcp-server python -c "import ntplib; print(ntplib.NTPClient(
 2. Create a feature branch: `git checkout -b feature-name`
 3. Make your changes
 4. Add tests for new functionality
-5. Ensure all tests pass: `python test_mcp_docker.py`
-6. Commit your changes: `git commit -m "Add feature"`
-7. Push to the branch: `git push origin feature-name`
-8. Submit a pull request
+5. Ensure all tests pass: `python test/run_all_tests.py`
+6. Validate time format: `python test/simple_test.py`
+7. Commit your changes: `git commit -m "Add feature"`
+8. Push to the branch: `git push origin feature-name`
+9. Submit a pull request
 
 ## 📄 License
 
@@ -315,17 +402,25 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 If you encounter issues:
 
 1. Check the [Troubleshooting](#-troubleshooting) section
-2. Run the test suite to verify functionality
-3. Check that your MCP client configuration is correct
-4. Ensure Docker is running (for Docker deployment)
+2. Run the test suite to verify functionality: `python test/run_all_tests.py`
+3. Validate time format: `python test/simple_test.py`
+4. Check that your MCP client configuration is correct
+5. Ensure Docker is running (for Docker deployment)
 
 ## 🏷️ Version History
 
+- **v2.0.0** - **NEW STRUCTURED TIME FORMAT**
+  - ✨ **New structured output format**: `Date:YYYY-MM-DD\nTime:HH:mm:ss\nTimezone:timezone`
+  - 🧪 **Enhanced test suite** with comprehensive format validation
+  - 🔧 **Improved Windows compatibility** with dedicated test scripts
+  - 📊 **Better error handling** and fallback behavior
+  - 🐳 **Updated Docker tests** with full MCP protocol validation
+  
 - **v1.0.0** - Initial release with NTP support and Docker containerization
-- Full timezone support with pytz
-- Comprehensive test suite
-- Docker and Python deployment options
-- MCP protocol compliance
+  - Full timezone support with pytz
+  - Comprehensive test suite
+  - Docker and Python deployment options
+  - MCP protocol compliance
 
 ---
 

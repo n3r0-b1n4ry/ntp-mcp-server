@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
 Direct test of the running Docker container to prove it works correctly.
+Updated to validate the new time format: Date:YYYY-MM-DD\nTime:HH:mm:ss\nTimezone:timezone
 """
 
 import json
 import subprocess
 import time
+import re
 
 def test_running_container():
     """Test the currently running Docker container."""
-    print("🧪 Testing Running Docker Container")
+    print("🧪 Testing Running Docker Container with New Time Format")
     print("=" * 50)
     
     # Find the running container
@@ -68,26 +70,7 @@ def test_running_container():
     print("📤 Sending MCP requests...")
     try:
         result = subprocess.run([
-            "docker", "exec", "-i", container_id, "python", "-c", 
-            """
-import sys
-import json
-
-# Read all input
-input_data = sys.stdin.read()
-print("Received input:", repr(input_data), file=sys.stderr)
-
-# Just echo back what we received to show the container is responsive
-for line in input_data.strip().split('\\n'):
-    if line.strip():
-        try:
-            req = json.loads(line)
-            print(f"Parsed request: {req.get('method', 'unknown')}", file=sys.stderr)
-        except:
-            print(f"Invalid JSON: {line}", file=sys.stderr)
-
-print("Container is working and responsive!")
-"""
+            "docker", "exec", "-i", container_id, "python", "app.py"
         ], input=input_data, capture_output=True, text=True, timeout=10)
         
         print("📥 Container Response:")
@@ -97,17 +80,98 @@ print("Container is working and responsive!")
         
         if result.returncode == 0:
             print("✅ Container is responsive and working!")
+            # Validate the time format in the response
+            return validate_container_response(result.stdout)
         else:
             print("❌ Container returned error")
+            return False
             
-        return result.returncode == 0
-        
     except subprocess.TimeoutExpired:
         print("⏰ Request timed out - container might be hanging")
         return False
     except Exception as e:
         print(f"❌ Test failed: {e}")
         return False
+
+def validate_container_response(stdout):
+    """Validate that the container response contains the new time format."""
+    if not stdout:
+        print("❌ No output from container")
+        return False
+    
+    print("\n🔍 Validating Time Format in Container Response...")
+    
+    # Parse JSON responses
+    responses = []
+    for line in stdout.strip().split('\n'):
+        if line.strip():
+            try:
+                response = json.loads(line)
+                responses.append(response)
+            except json.JSONDecodeError:
+                continue
+    
+    # Look for tool call response (id=3)
+    tool_response = None
+    for response in responses:
+        if response.get('id') == 3 and 'result' in response:
+            tool_response = response
+            break
+    
+    if not tool_response:
+        print("❌ No tool call response found in container output")
+        return False
+    
+    try:
+        content = tool_response['result']['content']
+        if content and content[0].get('type') == 'text':
+            time_text = content[0]['text']
+            print(f"📅 Extracted time text: {time_text}")
+            return validate_new_time_format(time_text)
+        else:
+            print("❌ No text content in tool response")
+            return False
+    except (KeyError, IndexError) as e:
+        print(f"❌ Error parsing tool response: {e}")
+        return False
+
+def validate_new_time_format(time_text):
+    """Validate the new time format: Date:YYYY-MM-DD\nTime:HH:mm:ss\nTimezone:timezone"""
+    
+    # Split the text into lines
+    lines = time_text.split('\n')
+    
+    if len(lines) < 3:
+        print(f"❌ Expected at least 3 lines, got {len(lines)}")
+        print(f"   Lines received: {lines}")
+        return False
+    
+    # Validate Date line
+    date_pattern = r'^Date:\d{4}-\d{2}-\d{2}$'
+    if not re.match(date_pattern, lines[0]):
+        print(f"❌ Date format invalid: '{lines[0]}'")
+        print(f"   Expected pattern: Date:YYYY-MM-DD")
+        return False
+    
+    # Validate Time line
+    time_pattern = r'^Time:\d{2}:\d{2}:\d{2}$'
+    if not re.match(time_pattern, lines[1]):
+        print(f"❌ Time format invalid: '{lines[1]}'")
+        print(f"   Expected pattern: Time:HH:mm:ss")
+        return False
+    
+    # Validate Timezone line (may include fallback text)
+    timezone_pattern = r'^Timezone:.+$'
+    if not re.match(timezone_pattern, lines[2]):
+        print(f"❌ Timezone format invalid: '{lines[2]}'")
+        print(f"   Expected pattern: Timezone:timezone_name")
+        return False
+    
+    print("✅ New time format validation PASSED!")
+    print(f"   📅 {lines[0]}")
+    print(f"   🕐 {lines[1]}")
+    print(f"   🌍 {lines[2]}")
+    return True
 
 def check_container_logs():
     """Check the container logs to see what's happening."""
@@ -137,27 +201,34 @@ def check_container_logs():
     except Exception as e:
         print(f"❌ Failed to get logs: {e}")
 
-def demonstrate_normal_behavior():
-    """Demonstrate that the 'error' messages are actually normal."""
-    print("\n🎯 Demonstrating Normal MCP Server Behavior")
+def demonstrate_new_format():
+    """Demonstrate the new time format."""
+    print("\n🕐 New Time Format Specification")
     print("=" * 50)
     
-    print("The message you're seeing:")
-    print("  [ERROR] [Plugin(mcp/ntp-server-docker)] stderr: INFO:mcp.server.lowlevel.server:Processing request of type ListToolsRequest")
+    print("The NTP server now outputs time in this format:")
+    print("  Date:YYYY-MM-DD")
+    print("  Time:HH:mm:ss") 
+    print("  Timezone:timezone_name")
     print()
-    print("Is actually NORMAL behavior because:")
-    print("  ✅ 'INFO:' means it's an informational log message, NOT an error")
-    print("  ✅ 'Processing request of type ListToolsRequest' means it's WORKING")
-    print("  ✅ 'stderr:' just means the client is showing server debug output")
+    print("Example output:")
+    print("  Date:2024-01-15")
+    print("  Time:14:30:25")
+    print("  Timezone:UTC")
     print()
-    print("This is like a web server logging:")
-    print("  'INFO: Processing GET request to /api/tools' - it's NORMAL!")
+    print("For fallback (local time):")
+    print("  Date:2024-01-15")
+    print("  Time:14:30:25")
+    print("  Timezone:UTC (local fallback)")
     print()
-    print("Your MCP server is working perfectly! The 'error' is just verbose logging.")
+    print("This format is more structured and easier to parse!")
 
 if __name__ == "__main__":
-    print("🔍 Direct Docker Container Test")
+    print("🔍 Direct Docker Container Test - New Time Format")
     print("=" * 50)
+    
+    # Explain the new format
+    demonstrate_new_format()
     
     # Test the running container
     success = test_running_container()
@@ -165,11 +236,10 @@ if __name__ == "__main__":
     # Show container logs
     check_container_logs()
     
-    # Explain the situation
-    demonstrate_normal_behavior()
-    
+    print("\n" + "=" * 50)
     if success:
-        print("\n🎉 CONCLUSION: Your Docker container is working correctly!")
-        print("The 'error' messages you see are just normal debug logs.")
+        print("🎉 CONCLUSION: Docker container works correctly with new time format!")
+        print("✅ Time format validation PASSED")
     else:
-        print("\n🤔 The container might have issues, but let's investigate further...") 
+        print("❌ CONCLUSION: Container test failed or time format is incorrect")
+        print("🔧 Check the output above for details") 

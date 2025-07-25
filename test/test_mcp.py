@@ -8,6 +8,7 @@ import json
 import subprocess
 import sys
 import asyncio
+import re
 
 async def test_mcp_server_correctly():
     """Test the MCP server with PROPER initialization sequence."""
@@ -87,14 +88,40 @@ async def test_mcp_server_correctly():
         print(f"STDOUT:\n{stdout}")
         if stderr:
             print(f"STDERR (debug logs):\n{stderr}")
-            
-        return True
         
+        # Validate the new time format in the output
+        if validate_time_format(stdout):
+            print("✅ Time format validation PASSED!")
+            return True
+        else:
+            print("❌ Time format validation FAILED!")
+            return False
+            
     except Exception as e:
         print(f"Test failed: {e}")
         if 'process' in locals():
             process.kill()
         return False
+
+def validate_time_format(output):
+    """Validate that the output contains the expected time format."""
+    # Expected format: Date:YYYY-MM-DD\nTime:HH:mm:ss\nTimezone:timezone
+    time_pattern = r'Date:\d{4}-\d{2}-\d{2}\\nTime:\d{2}:\d{2}:\d{2}\\nTimezone:[^"]*'
+    
+    if re.search(time_pattern, output):
+        print("✅ Found new time format: Date:YYYY-MM-DD\\nTime:HH:mm:ss\\nTimezone:timezone")
+        return True
+    
+    # Also check for fallback format
+    fallback_pattern = r'Date:\d{4}-\d{2}-\d{2}\\nTime:\d{2}:\d{2}:\d{2}\\nTimezone:[^"]*\s*\(local fallback\)'
+    
+    if re.search(fallback_pattern, output):
+        print("✅ Found fallback time format: Date:YYYY-MM-DD\\nTime:HH:mm:ss\\nTimezone:timezone (local fallback)")
+        return True
+    
+    print("❌ Expected time format not found in output")
+    print("Expected pattern: Date:YYYY-MM-DD\\nTime:HH:mm:ss\\nTimezone:timezone")
+    return False
 
 def show_bug_explanation():
     """Explain what the bug was and how it's fixed."""
@@ -112,6 +139,11 @@ def show_bug_explanation():
     print()
     print("🎯 RESULT: Server works perfectly when MCP protocol is followed!")
     print("=" * 60)
+    print()
+    print("🕐 NEW TIME FORMAT:")
+    print("   Output format: Date:YYYY-MM-DD\\nTime:HH:mm:ss\\nTimezone:timezone")
+    print("   Example: Date:2024-01-15\\nTime:14:30:25\\nTimezone:UTC")
+    print("=" * 60)
 
 if __name__ == "__main__":
     show_bug_explanation()
@@ -120,6 +152,6 @@ if __name__ == "__main__":
     result = asyncio.run(test_mcp_server_correctly())
     
     if result:
-        print("\n🎉 ALL TESTS PASSED! The bug is completely fixed!")
+        print("\n🎉 ALL TESTS PASSED! The server works with the new time format!")
     else:
         print("\n❌ Test failed - check the error messages above") 

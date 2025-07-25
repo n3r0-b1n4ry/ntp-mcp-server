@@ -74,7 +74,12 @@ async def handle_call_tool(
         else:
             local_dt = utc_dt.astimezone()  # System's local time zone
         
-        result = f"Current time: {local_dt.isoformat()}"
+        # Format the time according to the requested format
+        date_str = local_dt.strftime("%Y-%m-%d")
+        time_str = local_dt.strftime("%H:%M:%S")
+        timezone_str = local_dt.strftime("%Z") if local_dt.strftime("%Z") else str(local_dt.tzinfo)
+        
+        result = f"Date:{date_str}\nTime:{time_str}\nTimezone:{timezone_str}"
         logger.info(f"NTP time retrieved: {result}")
         
     except Exception as e:
@@ -89,7 +94,12 @@ async def handle_call_tool(
                 utc_now = datetime.now(timezone.utc)
                 local_dt = utc_now.astimezone()
             
-            result = f"Current time (local fallback): {local_dt.isoformat()}"
+            # Format the time according to the requested format
+            date_str = local_dt.strftime("%Y-%m-%d")
+            time_str = local_dt.strftime("%H:%M:%S")
+            timezone_str = local_dt.strftime("%Z") if local_dt.strftime("%Z") else str(local_dt.tzinfo)
+            
+            result = f"Date:{date_str}\nTime:{time_str}\nTimezone:{timezone_str} (local fallback)"
             
         except Exception as e2:
             # If all else fails, return an error

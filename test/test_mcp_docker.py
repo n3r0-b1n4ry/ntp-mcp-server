@@ -2,6 +2,7 @@
 """
 Docker-specific test script for the NTP MCP server.
 Tests the Docker container with proper MCP protocol handling.
+Updated to validate new time format: Date:YYYY-MM-DD\nTime:HH:mm:ss\nTimezone:timezone
 """
 
 import json
@@ -10,6 +11,7 @@ import sys
 import asyncio
 import time
 import os
+import re
 
 class DockerMCPTester:
     def __init__(self, image_name="ntp-mcp-server"):
@@ -136,7 +138,7 @@ class DockerMCPTester:
             return None, str(e)
     
     def parse_responses(self, stdout):
-        """Parse and display MCP responses."""
+        """Parse and display MCP responses, validating the new time format."""
         print("\n📥 Server Responses:")
         print("=" * 50)
         
@@ -154,6 +156,7 @@ class DockerMCPTester:
                     print(f"⚠️  Invalid JSON: {line}")
         
         success = True
+        time_format_validated = False
         
         for i, response in enumerate(responses, 1):
             print(f"\n📋 Response {i}:")
@@ -172,13 +175,63 @@ class DockerMCPTester:
                 elif "content" in result:
                     content = result["content"]
                     if content and content[0].get("type") == "text":
-                        print(f"✅ Tool result: {content[0]['text']}")
+                        time_text = content[0]['text']
+                        print(f"✅ Tool result received:")
+                        print(f"   {time_text}")
+                        
+                        # Validate the new time format
+                        if self.validate_new_time_format(time_text):
+                            time_format_validated = True
+                        else:
+                            success = False
                 else:
                     print(f"✅ Response: {json.dumps(result, indent=2)}")
             else:
                 print(f"ℹ️  Notification or other: {json.dumps(response, indent=2)}")
         
+        if not time_format_validated:
+            print("❌ Time format validation failed or no time response found")
+            success = False
+        
         return success
+    
+    def validate_new_time_format(self, time_text):
+        """Validate the new time format: Date:YYYY-MM-DD\nTime:HH:mm:ss\nTimezone:timezone"""
+        print(f"\n🔍 Validating time format...")
+        
+        # Split the text into lines
+        lines = time_text.split('\n')
+        
+        if len(lines) < 3:
+            print(f"❌ Expected at least 3 lines, got {len(lines)}")
+            return False
+        
+        # Validate Date line
+        date_pattern = r'^Date:\d{4}-\d{2}-\d{2}$'
+        if not re.match(date_pattern, lines[0]):
+            print(f"❌ Date format invalid: '{lines[0]}'")
+            print(f"   Expected: Date:YYYY-MM-DD")
+            return False
+        
+        # Validate Time line
+        time_pattern = r'^Time:\d{2}:\d{2}:\d{2}$'
+        if not re.match(time_pattern, lines[1]):
+            print(f"❌ Time format invalid: '{lines[1]}'")
+            print(f"   Expected: Time:HH:mm:ss")
+            return False
+        
+        # Validate Timezone line (may include fallback text)
+        timezone_pattern = r'^Timezone:.+$'
+        if not re.match(timezone_pattern, lines[2]):
+            print(f"❌ Timezone format invalid: '{lines[2]}'")
+            print(f"   Expected: Timezone:timezone_name")
+            return False
+        
+        print("✅ New time format validation PASSED!")
+        print(f"   📅 Date: {lines[0]}")
+        print(f"   🕐 Time: {lines[1]}")
+        print(f"   🌍 Timezone: {lines[2]}")
+        return True
     
     def show_debug_info(self, stderr):
         """Show debug information from stderr."""
@@ -198,7 +251,7 @@ class DockerMCPTester:
 
 async def test_different_configurations():
     """Test different NTP server and timezone configurations."""
-    print("\n🌍 Testing Different Configurations...")
+    print("\n🌍 Testing Different Configurations with New Time Format...")
     
     configs = [
         ("pool.ntp.org", "UTC"),
@@ -207,28 +260,42 @@ async def test_different_configurations():
         ("time.apple.com", "Asia/Tokyo")
     ]
     
+    results = []
+    
     for ntp_server, timezone in configs:
         print(f"\n🔧 Testing NTP: {ntp_server}, TZ: {timezone}")
         
         tester = DockerMCPTester()
         if not tester.start_container(ntp_server, timezone):
+            results.append((ntp_server, timezone, False))
             continue
         
         try:
             stdout, stderr = await tester.test_full_mcp_flow()
             if stdout:
                 success = tester.parse_responses(stdout)
+                results.append((ntp_server, timezone, success))
                 if success:
-                    print(f"✅ Configuration {ntp_server}/{timezone} works!")
+                    print(f"✅ Configuration {ntp_server}/{timezone} works with new format!")
                 else:
                     print(f"❌ Configuration {ntp_server}/{timezone} failed!")
             else:
                 print(f"❌ No response from {ntp_server}/{timezone}")
+                results.append((ntp_server, timezone, False))
                 
         finally:
             tester.stop_container()
         
         await asyncio.sleep(1)  # Brief pause between tests
+    
+    # Summary
+    print(f"\n📊 Configuration Test Results:")
+    print("=" * 50)
+    for ntp_server, timezone, success in results:
+        status = "✅ PASSED" if success else "❌ FAILED"
+        print(f"   {ntp_server} / {timezone}: {status}")
+    
+    return all(result[2] for result in results)
 
 def test_docker_management():
     """Test Docker image management commands."""
@@ -253,10 +320,29 @@ def test_docker_management():
     except subprocess.CalledProcessError as e:
         print(f"⚠️  Container status check failed: {e}")
 
+def show_new_format_info():
+    """Show information about the new time format."""
+    print("🕐 New Time Format Information")
+    print("=" * 50)
+    print("The NTP server now outputs time in this structured format:")
+    print("  Date:YYYY-MM-DD")
+    print("  Time:HH:mm:ss")
+    print("  Timezone:timezone_name")
+    print()
+    print("Benefits of the new format:")
+    print("  ✅ More structured and easier to parse")
+    print("  ✅ Separate date and time components")
+    print("  ✅ Clear timezone information")
+    print("  ✅ Consistent formatting across all responses")
+    print()
+
 async def main():
     """Main test function."""
-    print("🧪 NTP MCP Server Docker Test Suite")
-    print("=" * 50)
+    print("🧪 NTP MCP Server Docker Test Suite - New Time Format")
+    print("=" * 60)
+    
+    # Show format information
+    show_new_format_info()
     
     # Test 1: Build the image
     tester = DockerMCPTester()
@@ -270,15 +356,16 @@ async def main():
         print("❌ Cannot start container")
         return
     
+    basic_success = False
     try:
         stdout, stderr = await tester.test_full_mcp_flow()
         
         if stdout:
-            success = tester.parse_responses(stdout)
+            basic_success = tester.parse_responses(stdout)
             tester.show_debug_info(stderr)
             
-            if success:
-                print("\n🎉 Basic test PASSED!")
+            if basic_success:
+                print("\n🎉 Basic test PASSED with new time format!")
             else:
                 print("\n❌ Basic test FAILED!")
         else:
@@ -288,12 +375,22 @@ async def main():
         tester.stop_container()
     
     # Test 3: Different configurations
-    await test_different_configurations()
+    config_success = await test_different_configurations()
     
     # Test 4: Docker management
     test_docker_management()
     
+    # Final summary
     print("\n🏁 Test Suite Complete!")
+    print("=" * 60)
+    print("📊 Final Results:")
+    print(f"   Basic functionality: {'✅ PASSED' if basic_success else '❌ FAILED'}")
+    print(f"   Configuration tests: {'✅ PASSED' if config_success else '❌ FAILED'}")
+    
+    if basic_success and config_success:
+        print("\n🎉 ALL TESTS PASSED! New time format works perfectly!")
+    else:
+        print("\n❌ Some tests failed - check the output above for details")
 
 if __name__ == "__main__":
     try:
