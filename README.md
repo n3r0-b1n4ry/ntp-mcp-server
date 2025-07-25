@@ -283,6 +283,13 @@ docker build -t my-ntp-server .
 
 # Build for specific platform
 docker build --platform linux/amd64 -t ntp-mcp-server .
+
+# Build for ARM64 architecture
+docker build --platform linux/arm64 -t ntp-mcp-server:arm64 .
+
+# Build for multiple architectures (requires Docker Buildx)
+docker buildx create --name multiarch-builder --use
+docker buildx build --platform linux/amd64,linux/arm64 -t username/ntp-mcp-server:latest --push .
 ```
 
 ### Volume Mounts
